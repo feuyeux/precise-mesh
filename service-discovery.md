@@ -1,4 +1,3 @@
-### 0. prepare
 1. Download etcd from [pre-built](https://github.com/etcd-io/etcd/releases)
 1. Run `etcd` and `etcdctl` :
     ```shell
@@ -28,3 +27,5 @@
     foo
     bar
     ```
+
+![](doc/architecture.png)

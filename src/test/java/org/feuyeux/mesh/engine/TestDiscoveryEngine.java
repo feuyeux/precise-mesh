@@ -1,11 +1,12 @@
-package org.feuyeux.mesh;
+package org.feuyeux.mesh.engine;
 
+import java.net.SocketException;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 import lombok.extern.slf4j.Slf4j;
+import org.feuyeux.mesh.SdkApplication;
 import org.feuyeux.mesh.config.EtcdProperties;
-import org.feuyeux.mesh.engine.DiscoveryEngine;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -19,6 +20,9 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 @RunWith(SpringJUnit4ClassRunner.class)
 @SpringBootTest(classes = SdkApplication.class)
 public class TestDiscoveryEngine {
+    public static final int TIMEOUT = 1;
+    public static final int LOOP = 1;
+    public static final int TTL = 6;
     private DiscoveryEngine discoveryEngine;
     @Autowired
     private EtcdProperties etcdProperties;
@@ -32,11 +36,10 @@ public class TestDiscoveryEngine {
     @Test
     public void test() throws InterruptedException {
         testRegister();
-        TimeUnit.SECONDS.sleep(20);
-        testDiscovery();
-        TimeUnit.SECONDS.sleep(20);
-        testDiscovery();
-        TimeUnit.SECONDS.sleep(20);
+        for (int i = 0; i < LOOP; i++) {
+            testDiscovery();
+            TimeUnit.SECONDS.sleep(TIMEOUT);
+        }
         testUnRegister();
     }
 
@@ -51,13 +54,24 @@ public class TestDiscoveryEngine {
     private void testDiscovery() {
         log.info("\n====testDiscovery====");
         List<String> l = discoveryEngine.discovery("A", "B");
-        l.forEach(n -> log.info("Discovery:{}", n));
+        l.stream().forEach(n -> log.info("Discovery:{}", n));
     }
 
-    public void testUnRegister() {
+    public void testUnRegister() throws InterruptedException {
         log.info("\n====testUnRegister====");
         discoveryEngine.unRegister("A", "B", 9000);
+        TimeUnit.SECONDS.sleep(TTL);
         testDiscovery();
+    }
+
+    @Test
+    public void testLocalIp() {
+        try {
+            String localIp = DiscoveryEngine.getLocalIp();
+            log.info("localIp ={}", localIp);
+        } catch (SocketException e) {
+            log.error("", e);
+        }
     }
 
     @After
