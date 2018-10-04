@@ -35,7 +35,7 @@ public class DiscoveryEngine {
     private Client etcdClient;
     private ReentrantReadWriteLock lock = new ReentrantReadWriteLock();
 
-    public static String getLocalIp() {
+    private static String getLocalIp() {
         try {
             Enumeration allNetInterfaces = NetworkInterface.getNetworkInterfaces();
 
