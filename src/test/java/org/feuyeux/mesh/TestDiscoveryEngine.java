@@ -32,16 +32,16 @@ public class TestDiscoveryEngine {
     @Test
     public void test() throws InterruptedException {
         testRegister();
-        TimeUnit.SECONDS.sleep(15);
+        TimeUnit.SECONDS.sleep(20);
         testDiscovery();
-        TimeUnit.SECONDS.sleep(15);
+        TimeUnit.SECONDS.sleep(20);
         testDiscovery();
-        TimeUnit.SECONDS.sleep(15);
+        TimeUnit.SECONDS.sleep(20);
         testUnRegister();
     }
 
     public void testRegister() {
-        log.info("====testRegister====\n");
+        log.info("\n====testRegister====");
         String s = discoveryEngine.register("A", "B", 9000);
         Assert.assertNotNull(s);
         log.info("Register Result={}", s);
@@ -49,13 +49,13 @@ public class TestDiscoveryEngine {
     }
 
     private void testDiscovery() {
-        log.info("====testRegister====\n");
+        log.info("\n====testDiscovery====");
         List<String> l = discoveryEngine.discovery("A", "B");
         l.forEach(n -> log.info("Discovery:{}", n));
     }
 
     public void testUnRegister() {
-        log.info("====testRegister====\n");
+        log.info("\n====testUnRegister====");
         discoveryEngine.unRegister("A", "B", 9000);
         testDiscovery();
     }
