@@ -33,7 +33,7 @@ public class TestDiscoveryEngine {
         discoveryEngine.refresh(etcdProperties);
     }
 
-    @Test
+    //@Test
     public void test() throws InterruptedException {
         testRegister();
         for (int i = 0; i < LOOP; i++) {
