@@ -27,8 +27,10 @@ import com.coreos.jetcd.options.PutOption;
 import lombok.extern.slf4j.Slf4j;
 import org.feuyeux.mesh.config.EtcdProperties;
 import org.feuyeux.mesh.domain.DiscoveryKeepAlive;
+import org.springframework.stereotype.Service;
 
 @Slf4j
+@Service
 public class DiscoveryEngine {
     private Map<String, DiscoveryKeepAlive> leaseMap = new ConcurrentHashMap<>(1);
     private String endpoints;

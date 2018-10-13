@@ -5,7 +5,6 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 import lombok.extern.slf4j.Slf4j;
-import org.feuyeux.mesh.SdkApplication;
 import org.feuyeux.mesh.config.EtcdProperties;
 import org.junit.After;
 import org.junit.Assert;
@@ -14,22 +13,22 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+import org.springframework.test.context.junit4.SpringRunner;
 
 @Slf4j
-@RunWith(SpringJUnit4ClassRunner.class)
-@SpringBootTest(classes = SdkApplication.class)
-public class TestDiscoveryEngine {
+@RunWith(SpringRunner.class)
+@SpringBootTest(value = "classpath:application-test.yml")
+public class DiscoveryTest {
     public static final int TIMEOUT = 1;
     public static final int LOOP = 1;
     public static final int TTL = 6;
+    @Autowired
     private DiscoveryEngine discoveryEngine;
     @Autowired
     private EtcdProperties etcdProperties;
 
     @Before
     public void before() {
-        discoveryEngine = new DiscoveryEngine();
         discoveryEngine.refresh(etcdProperties);
     }
 
