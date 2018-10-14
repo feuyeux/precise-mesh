@@ -20,6 +20,13 @@
             <version>0.0.2</version>
         </dependency>
 
+        <!-- hystrix https://github.com/Netflix/Hystrix -->
+        <dependency>
+            <groupId>com.netflix.hystrix</groupId>
+            <artifactId>hystrix-core</artifactId>
+            <version>1.5.13</version>
+        </dependency>
+
         <!--==provided== -->
         <dependency>
             <groupId>org.projectlombok</groupId>
