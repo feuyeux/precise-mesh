@@ -1,1 +1,2 @@
-nls.etcd.endpoints: http://192.168.3.125:2379
+mesh.etcd.endpoints: http://192.168.3.125:2379
+mesh.etcd.ttl: 5

@@ -4,6 +4,7 @@ import java.net.Inet4Address;
 import java.net.InetAddress;
 import java.net.NetworkInterface;
 import java.net.SocketException;
+import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.List;
 import java.util.Map;
@@ -26,8 +27,10 @@ import com.coreos.jetcd.options.PutOption;
 import lombok.extern.slf4j.Slf4j;
 import org.feuyeux.mesh.config.EtcdProperties;
 import org.feuyeux.mesh.domain.DiscoveryKeepAlive;
+import org.springframework.stereotype.Service;
 
 @Slf4j
+@Service
 public class DiscoveryEngine {
     private Map<String, DiscoveryKeepAlive> leaseMap = new ConcurrentHashMap<>(1);
     private String endpoints;
@@ -35,35 +38,28 @@ public class DiscoveryEngine {
     private Client etcdClient;
     private ReentrantReadWriteLock lock = new ReentrantReadWriteLock();
 
-    public static String getLocalIp() {
-        try {
-            Enumeration allNetInterfaces = NetworkInterface.getNetworkInterfaces();
+    static String getLocalIp() throws SocketException {
+        Enumeration allNetInterfaces = NetworkInterface.getNetworkInterfaces();
+        while (true) {
+            NetworkInterface netInterface;
+            do {
+                if (!allNetInterfaces.hasMoreElements()) {
+                    return null;
+                }
+                netInterface = (NetworkInterface)allNetInterfaces.nextElement();
+                // 跳过回环网卡
+            } while ("lo".equals(netInterface.getName()));
 
-            while (true) {
-                NetworkInterface netInterface;
-                do {
-                    if (!allNetInterfaces.hasMoreElements()) {
-                        return null;
-                    }
-
-                    netInterface = (NetworkInterface)allNetInterfaces.nextElement();
-                } while ("lo".equals(netInterface.getName()));
-
-                Enumeration addresses = netInterface.getInetAddresses();
-
-                while (addresses.hasMoreElements()) {
-                    InetAddress ip = (InetAddress)addresses.nextElement();
-                    if (ip instanceof Inet4Address) {
-                        String t = ip.getHostAddress();
-                        if (!"127.0.0.1".equals(t)) {
-                            return t;
-                        }
+            Enumeration addresses = netInterface.getInetAddresses();
+            while (addresses.hasMoreElements()) {
+                InetAddress ip = (InetAddress)addresses.nextElement();
+                if (ip instanceof Inet4Address) {
+                    String hostAddress = ip.getHostAddress();
+                    if (!"127.0.0.1".equals(hostAddress)) {
+                        return hostAddress;
                     }
                 }
             }
-        } catch (SocketException var5) {
-            log.error("", var5);
-            return null;
         }
     }
 
@@ -97,68 +93,97 @@ public class DiscoveryEngine {
     }
 
     public String register(String serviceName, String groupKey, int port) {
-        String nodeIp = getLocalIp();
-        log.info("register(svcName={}, groupkey={}, nodeip={}, port={})", serviceName, groupKey, nodeIp, port);
         try {
+            /**
+             * 创建租期为ttl的租约
+             * 将租约id设置为put参数
+             */
+            Lease lease = getLease();
+            long leaseId = lease.grant(ttl).get().getID();
+            log.info("LeaseId = {}", leaseId);
+            PutOption option = PutOption.newBuilder().withLeaseId(leaseId).build();
+
+            /**
+             * 服务注册参数：
+             * key：服务/分组/节点IP/节点端口
+             * value：节点IP:节点端口
+             * put参数：租约id
+             */
+            KV kvClient = getKv();
+            String nodeIp = getLocalIp();
             String leaseKey = serviceName + "/" + groupKey + "/" + nodeIp + "/" + port;
             ByteSequence k = ByteSequence.fromString(leaseKey);
             ByteSequence v = ByteSequence.fromString(nodeIp + ":" + port);
-            Lease lease = getLease();
-            long leaseID = lease.grant(ttl).get().getID();
-            log.info("leaseID = {}", leaseID);
-            PutOption option = PutOption.newBuilder().withLeaseId(leaseID).build();
-            KV kvClient = getKv();
             PutResponse putResponse = kvClient.put(k, v, option).get();
             log.info("Register: serviceName={},groupKey={},nodeIp={},port={},revision={}",
                 serviceName, groupKey, nodeIp, port, putResponse.getHeader().getRevision());
 
-            KeepAliveListener keepAliveListener = lease.keepAlive(leaseID);
+            /**
+             * 获取租约id对应的KeepAlive Listener
+             * 启动监听，从而实现续租
+             */
+            KeepAliveListener keepAliveListener = lease.keepAlive(leaseId);
             LeaseKeepAliveResponse keepAliveResponse = keepAliveListener.listen();
 
-            leaseMap.put(leaseKey, DiscoveryKeepAlive.builder()
+            /**
+             * 缓存监听器，以便服务注销时停止，从而不再续租
+             */
+            long keepAliveId = keepAliveResponse.getID();
+            DiscoveryKeepAlive discoveryKeepAlive = DiscoveryKeepAlive.builder()
                 .keepAliveListener(keepAliveListener)
-                .keepAliveId(keepAliveResponse.getID())
+                .keepAliveId(keepAliveId)
                 .ttl(keepAliveResponse.getTTL())
-                .build());
-            return String.valueOf(keepAliveResponse.getID());
-        } catch (InterruptedException | ExecutionException e) {
+                .build();
+            leaseMap.put(leaseKey, discoveryKeepAlive);
+            return String.valueOf(keepAliveId);
+        } catch (InterruptedException | ExecutionException | SocketException e) {
             log.error("", e);
             return null;
         }
     }
 
     public String unRegister(String serviceName, String groupKey, int port) {
-        String nodeIp = getLocalIp();
-        String leaseKey = serviceName + "/" + groupKey + "/" + nodeIp + "/" + port;
-        DiscoveryKeepAlive keepAlive = leaseMap.remove(leaseKey);
-        if (keepAlive != null) {
-            log.info("unRegister:keepAliveId={}, ttl={}", keepAlive.getKeepAliveId(), keepAlive.getTtl());
-            keepAlive.getKeepAliveListener().close();
-            return String.valueOf(keepAlive.getKeepAliveId());
+        try {
+            String nodeIp = getLocalIp();
+            String leaseKey = serviceName + "/" + groupKey + "/" + nodeIp + "/" + port;
+            DiscoveryKeepAlive discoveryKeepAlive = leaseMap.remove(leaseKey);
+            if (discoveryKeepAlive != null) {
+                log.info("unRegister:keepAliveId={}, ttl={}",
+                    discoveryKeepAlive.getKeepAliveId(), discoveryKeepAlive.getTtl());
+                discoveryKeepAlive.getKeepAliveListener().close();
+                return String.valueOf(discoveryKeepAlive.getKeepAliveId());
+            }
+            return "-1";
+        } catch (SocketException e) {
+            log.error("", e);
+            return "-1";
         }
-        return "-1";
     }
 
     public List<String> discovery(String serviceName, String groupKey) {
         log.info("discovery(svcName={}, groupKey={})", serviceName, groupKey);
         String key = serviceName + "/" + groupKey;
+        List<String> l  ;
         try {
             lock.readLock().lock();
             KV kvClient = getKv();
             ByteSequence prefix = ByteSequence.fromString(key);
-            GetResponse getResponse = kvClient.get(
-                prefix,
-                GetOption.newBuilder().withPrefix(prefix).build()).get();
+            GetOption option = GetOption.newBuilder().withPrefix(prefix).build();
+            GetResponse getResponse = kvClient.get(prefix, option).get();
             List<KeyValue> kvs = getResponse.getKvs();
-            if (kvs == null || kvs.isEmpty()) {
-                return null;
+            if (kvs != null && !kvs.isEmpty()) {
+                l = kvs.parallelStream()
+                    .filter(kv -> kv != null)
+                    .map(kv -> kv.getValue().toStringUtf8())
+                    .collect(Collectors.toList());
+            }else {
+                l = new ArrayList<>(1);
             }
-            List<String> l = kvs.parallelStream().map(kv -> kv.getValue().toStringUtf8()).collect(Collectors.toList());
             log.info("key: {}, list: {}", key, l);
             return l;
         } catch (InterruptedException | ExecutionException e) {
             log.error("", e);
-            return null;
+            return new ArrayList<>(1);
         } finally {
             lock.readLock().unlock();
         }
