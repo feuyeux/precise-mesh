@@ -12,12 +12,13 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.SpringBootConfiguration;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.junit4.SpringRunner;
 
 @Slf4j
 @RunWith(SpringRunner.class)
-@SpringBootTest(value = "classpath:application-test.yml")
+@SpringBootTest(classes = MeshApplication.class)
 public class DiscoveryTest {
     public static final int TIMEOUT = 1;
     public static final int LOOP = 1;

@@ -10,6 +10,8 @@
     <properties>
         <!--provider -->
         <lombok.version>1.16.18</lombok.version>
+        <spring-boot.version>2.0.5.RELEASE</spring-boot.version>
+        <spring.version>5.0.9.RELEASE</spring.version>
     </properties>
 
     <dependencies>
@@ -36,9 +38,10 @@
         <dependency>
             <groupId>org.springframework</groupId>
             <artifactId>spring-context</artifactId>
-            <version>4.3.9.RELEASE</version>
+            <version>${spring.version}</version>
             <scope>provided</scope>
         </dependency>
+
         <!--==== test ==== -->
         <dependency>
             <groupId>junit</groupId>
@@ -49,13 +52,19 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-log4j2</artifactId>
-            <version>1.5.9.RELEASE</version>
+            <version>${spring-boot.version}</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
-            <version>1.5.9.RELEASE</version>
+            <version>${spring-boot.version}</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.springframework.boot</groupId>
+                    <artifactId>spring-boot-starter-logging</artifactId>
+                </exclusion>
+            </exclusions>
             <scope>test</scope>
         </dependency>
     </dependencies>
