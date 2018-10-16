@@ -26,8 +26,7 @@ public class ResilientCommandCollapser extends HystrixCollapser<List<String>, St
     }
 
     @Override
-    protected HystrixCommand<List<String>> createCommand(
-        final Collection<CollapsedRequest<String, Integer>> requests) {
+    protected HystrixCommand<List<String>> createCommand(final Collection<CollapsedRequest<String, Integer>> requests) {
         return new BatchCommand(requests);
     }
 

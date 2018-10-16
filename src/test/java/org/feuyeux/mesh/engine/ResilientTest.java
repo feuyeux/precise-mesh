@@ -7,8 +7,6 @@ import com.netflix.hystrix.HystrixEventType;
 import com.netflix.hystrix.HystrixRequestLog;
 import com.netflix.hystrix.strategy.concurrency.HystrixRequestContext;
 import lombok.extern.slf4j.Slf4j;
-import org.junit.After;
-import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -16,10 +14,10 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.junit4.SpringRunner;
 import rx.Observable;
 import rx.Observer;
+import rx.observables.BlockingObservable;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
-
 
 @Slf4j
 @RunWith(SpringRunner.class)
@@ -39,29 +37,36 @@ public class ResilientTest {
     }*/
 
     @Test
+    public void test()throws Exception {
+        testSynchronous();
+        testAsynchronous1();
+        testAsynchronous2();
+        testObservable();
+        testCollapser();
+    }
     public void testSynchronous() {
-        assertEquals("Hello World!", resilientEngine.execute("World"));
+        assertEquals("Hello", resilientEngine.execute());
     }
 
-    @Test
+
     public void testAsynchronous1() throws Exception {
-        assertEquals("Hello World!", resilientEngine.queue("World").get());
+        assertEquals("Hello", resilientEngine.queue().get());
     }
 
-    @Test
     public void testAsynchronous2() throws Exception {
-        Future<String> fWorld = resilientEngine.queue("World");
-        assertEquals("Hello World!", fWorld.get());
+        Future<String> fWorld = resilientEngine.queue();
+        assertEquals("Hello", fWorld.get());
     }
 
-    //@Test
     public void testObservable() throws Exception {
-
-        Observable<String> fWorld = resilientEngine.observe("World");
+        Observable<String> fWorld = resilientEngine.observe();
 
         // blocking
-        String actual = fWorld.toBlocking().single();
-        assertEquals("Hello World!", actual);
+        BlockingObservable<String> blockingObservable = fWorld.toBlocking();
+        String actual = blockingObservable.first();
+        assertEquals("Hello", actual);
+        actual =  blockingObservable.last();
+        assertEquals("!", actual);
 
         // non-blocking
         // - this is a verbose anonymous inner-class approach and doesn't do assertions
@@ -79,13 +84,12 @@ public class ResilientTest {
 
             @Override
             public void onNext(String v) {
-                System.out.println("onNext: " + v);
+                log.info("onNext: " + v);
             }
 
         });
     }
 
-    //@Test
     public void testCollapser() throws Exception {
         HystrixRequestContext context = HystrixRequestContext.initializeContext();
         try {

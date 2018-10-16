@@ -12,11 +12,8 @@ import rx.schedulers.Schedulers;
  */
 public class ResilientObservableCommand extends HystrixObservableCommand<String> {
 
-    private final String name;
-
-    public ResilientObservableCommand(String name) {
-        super(HystrixCommandGroupKey.Factory.asKey("ExampleGroup"));
-        this.name = name;
+    public ResilientObservableCommand(String key) {
+        super(HystrixCommandGroupKey.Factory.asKey(key));
     }
 
     @Override
@@ -26,7 +23,7 @@ public class ResilientObservableCommand extends HystrixObservableCommand<String>
                 if (!observer.isUnsubscribed()) {
                     // a real example would do work like a network call here
                     observer.onNext("Hello");
-                    observer.onNext(name + "!");
+                    observer.onNext("!");
                     observer.onCompleted();
                 }
             } catch (Exception e) {
