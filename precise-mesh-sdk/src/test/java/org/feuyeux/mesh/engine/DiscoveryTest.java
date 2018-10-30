@@ -5,14 +5,13 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 import lombok.extern.slf4j.Slf4j;
-import org.feuyeux.mesh.config.EtcdProperties;
+import org.feuyeux.mesh.config.EtcdConfig;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.SpringBootConfiguration;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.junit4.SpringRunner;
 
@@ -26,11 +25,11 @@ public class DiscoveryTest {
     @Autowired
     private DiscoveryEngine discoveryEngine;
     @Autowired
-    private EtcdProperties etcdProperties;
+    private EtcdConfig etcdConfig;
 
     @Before
     public void before() {
-        discoveryEngine.refresh(etcdProperties);
+        discoveryEngine.refresh(etcdConfig);
     }
 
     //@Test

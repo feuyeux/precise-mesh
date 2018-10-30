@@ -25,7 +25,7 @@ import com.coreos.jetcd.lease.LeaseKeepAliveResponse;
 import com.coreos.jetcd.options.GetOption;
 import com.coreos.jetcd.options.PutOption;
 import lombok.extern.slf4j.Slf4j;
-import org.feuyeux.mesh.config.EtcdProperties;
+import org.feuyeux.mesh.config.EtcdConfig;
 import org.feuyeux.mesh.domain.DiscoveryKeepAlive;
 import org.springframework.stereotype.Service;
 
@@ -67,13 +67,13 @@ public class DiscoveryEngine {
      * 更新etcd配置
      * 只有配置有变化才新建连接池
      *
-     * @param etcdProperties
+     * @param etcdConfig
      */
-    public void refresh(EtcdProperties etcdProperties) {
-        this.ttl = etcdProperties.getTtl();
-        if (endpoints == null || !endpoints.equals(etcdProperties.getEndpoints())) {
-            log.info("Update EtcdProperties, {}", etcdProperties);
-            endpoints = etcdProperties.getEndpoints();
+    public void refresh(EtcdConfig etcdConfig) {
+        this.ttl = etcdConfig.getTtl();
+        if (endpoints == null || !endpoints.equals(etcdConfig.getEndpoints())) {
+            log.info("Update EtcdConfig, {}", etcdConfig);
+            endpoints = etcdConfig.getEndpoints();
             try {
                 lock.writeLock().lock();
                 if (etcdClient != null) {

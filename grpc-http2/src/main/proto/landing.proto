@@ -1,0 +1,45 @@
+syntax = "proto3";
+
+option java_multiple_files = true;
+option java_package = "org.feuyeux.given.proto";
+option java_outer_classname = "Landing";
+
+service LandingService {
+    rpc talk (TalkRequest) returns (TalkResponse) {
+    }
+    //server-to-client streaming
+    rpc talkOneAnswerMore (TalkRequest) returns (stream TalkResponse) {
+    }
+    //client-to-server streaming
+    rpc talkMoreAnswerOne (stream TalkRequest) returns (TalkResponse) {
+    }
+    //Bidirectional streaming
+    rpc talkBidirectional (stream TalkRequest) returns (stream TalkResponse) {
+    }
+}
+
+message TalkRequest {
+    //query information
+    string data = 1;
+    //query meta-info
+    string meta = 2;
+}
+
+message TalkResponse {
+    int32 status = 1;
+    repeated TalkResult results = 2;
+}
+
+message TalkResult {
+    int64 id = 1;
+    ResultType type = 2;
+    map<string, string> kv = 3;
+}
+
+enum ResultType {
+    SEARCH = 0;
+    ANALYSIS = 1;
+    STATISTICS = 2;
+    MONITOR = 3;
+    RECOMMEND = 4;
+}
